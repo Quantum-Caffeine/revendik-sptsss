@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Avis de Retrait de Grief</title>
+  <style>
+    @page { size: letter; margin: 0; }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #1e293b; line-height: 1.5; background: #fff;
+      width: 8.5in; height: 11in; padding: 0.5in 0.6in;
+      display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;
+    }
+    
+    .form-content { width: 100%; }
+
+    /* En-tête et logo (Identique au dépôt) */
+    .header-container { margin-bottom: 15px; }
+    .logo-container { width: 250px; flex-shrink: 0; }
+    .logo-image { width: 100%; max-height: 80px; object-fit: contain; display: block; }
+
+    /* Conteneur Titre aligné (Identique au dépôt) */
+    .title-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      border-bottom: 2px solid #0f172a;
+      margin: 12px 0 25px 0;
+      padding-bottom: 4px;
+    }
+
+    h1 { font-size: 14px; font-weight: 700; text-transform: uppercase; color: #0f172a; margin: 0; padding: 0; border: none; }
+    .grief-number { font-weight: 600; font-size: 13px; color: #475569; margin: 0; padding: 0; border: none; }
+
+    /* Typographie unifiée */
+    .field-label { font-weight: 600; font-size: 13px; color: #0f172a; }
+    .text-value { font-size: 13.5px; color: #334155; }
+    .text-block { display: block; margin-top: 4px; text-align: justify; }
+    .sub-label { font-size: 10px; font-weight: 600; color: #64748b; margin-top: 4px; text-transform: uppercase; }
+
+    /* Lignes de remplissage */
+    .full-width-field { margin-bottom: 15px; }
+    .fill-line {
+      border-bottom: 1px solid #94a3b8;
+      height: 26px;
+      font-size: 13.5px;
+      display: flex;
+      align-items: flex-end;
+      padding-bottom: 2px;
+      position: relative;
+    }
+
+    /* Bloc Objet stylisé */
+    .objet-box {
+      margin-top: 8px;
+      padding: 10px 15px;
+      background-color: #f8fafc;
+      border-left: 3px solid #0f172a;
+    }
+
+    /* Bloc Motif stylisé */
+    .motif-box {
+      margin: 15px 0;
+      padding: 12px 15px;
+      background-color: #f1f5f9;
+      border-radius: 4px;
+      border: 1px solid #e2e8f0;
+    }
+
+    /* Section Signatures au bas de la page */
+    .form-footer { width: 100%; }
+    .signature-section { display: grid; grid-template-columns: 1fr 1fr; column-gap: 30px; margin-bottom: 20px; }
+    .signature-img {
+      position: absolute;
+      bottom: 2px;
+      left: 0;
+      max-height: 55px;
+      max-width: 100%;
+      object-fit: contain;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="form-content">
+    <div class="header-container">
+      <div class="logo-container">
+        {% if logo_base64 %}
+          <img src="{{ logo_base64 }}" alt="Logo SPTSSS" class="logo-image">
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="title-container">
+      <h1>Avis de retrait de grief(s)</h1>
+      <div class="grief-number">Québec, le {{ date_retrait }}</div>
+    </div>
+
+    <!-- Section OBJET -->
+    <div class="full-width-field">
+      <div class="field-label">OBJET : Retrait du grief</div>
+      <div class="text-value objet-box">
+        {% for grief in griefs %}
+          <div style="margin-bottom: 4px;">
+            <strong>{{ grief.numero }}</strong> &nbsp;|&nbsp; {{ grief.nom }} &nbsp;|&nbsp; #. {{ grief.matricule }}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Corps de la lettre -->
+    <div class="full-width-field text-value text-block" style="margin-top: 25px;">
+      Madame, Monsieur,
+    </div>
+
+    <div class="full-width-field text-value text-block">
+      Après une étude approfondie de la situation en litige et discussions avec l’équipe locale de votre établissement, le comité de griefs du Syndicat des professionnèles, techniciennes et techniciens de la santé et des services sociaux Capitale-Nationale consent au retrait définitif du grief ci-haut mentionné pour les motifs suivants :
+    </div>
+
+    <!-- Section Motif -->
+    <div class="motif-box">
+      <div class="field-label" style="margin-bottom: 5px;">Motif du retrait :</div>
+      <div class="text-value" style="font-weight: 600;">{{ motif }}</div>
+    </div>
+
+    <!-- Conclusion -->
+    <div class="full-width-field text-value text-block">
+      Par conséquent, le syndicat retire le grief à toutes fins que de droits.
+    </div>
+
+    <div class="full-width-field text-value text-block">
+      Veuillez agréer, Madame, Monsieur, l’expression de nos sentiments distingués.
+    </div>
+  </div>
+
+  <!-- Pied de page (Signatures figées en bas) -->
+  <div class="form-footer">
+    <div class="signature-section">
+      <div>
+        <div class="fill-line">
+          {% if signature_img_base64 %}
+            <img src="{{ signature_img_base64 }}" class="signature-img" style="bottom: {{ sig_bottom }}px; left: {{ sig_left }}px; width: {{ sig_width }}px; height: auto; max-width: none !important; max-height: none !important; z-index: 100; mix-blend-mode: multiply;" alt="Signature">
+          {% endif %}
+        </div>
+        <div class="sub-label">Agent de grief</div>
+      </div>
+      <div>
+        <div class="fill-line"></div>
+        <div class="sub-label">Personne salariée</div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

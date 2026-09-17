@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Formule de Grief</title>
+  <style>
+    @page { size: letter; margin: 0; }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #1e293b; line-height: 1.5; background: #fff;
+      width: 8.5in; height: 11in; padding: 0.5in 0.6in;
+      display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;
+    }
+    .form-content { width: 100%; }
+
+    /* En-tête et logo */
+    .header-container { margin-bottom: 15px; }
+    .logo-container { width: 250px; flex-shrink: 0; }
+    .logo-image { width: 100%; max-height: 80px; object-fit: contain; display: block; }
+
+    /* Conteneur Titre + Numéro de grief sur la même ligne */
+    .title-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline; /* Aligne le texte parfaitement sur la même ligne de base */
+      border-bottom: 2px solid #0f172a; /* La ligne noire prend toute la largeur */
+      margin: 12px 0 15px 0;
+      padding-bottom: 4px;
+    }
+
+    h1 { font-size: 14px; font-weight: 700; text-transform: uppercase; color: #0f172a; margin: 0; padding: 0; border: none; }
+    .grief-number { font-weight: 600; font-size: 13px; color: #475569; margin: 0; padding: 0; border: none; }
+
+    /* Typographie */
+    .field-label { font-weight: 600; font-size: 13px; color: #0f172a; }
+    .text-value { font-size: 13.5px; color: #334155; }
+   .text-block {
+      display: block;
+      margin-top: 4px;
+      text-align: justify; /* Sans le pre-wrap, la justification va enfin s'activer ! */
+    }
+    .sub-label { font-size: 10px; font-weight: 600; color: #64748b; margin-top: 4px; text-transform: uppercase; }
+
+    /* FIX 2 : Cases à cocher compatibles WeasyPrint (inline-block) */
+    .grief-types { display: flex; gap: 25px; margin-bottom: 15px; font-size: 13px; align-items: center; }
+    .checkbox-item { display: inline-block; color: #334155; }
+    .checkbox-box {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid #94a3b8;
+      border-radius: 3px;
+      background: #fff;
+      vertical-align: middle;
+      position: relative;
+      margin-right: 6px;
+      margin-bottom: 2px;
+    }
+    .checkbox-box.checked::after {
+      content: "";
+      display: block;
+      width: 6px;
+      height: 6px;
+      background-color: #0f172a;
+      position: absolute;
+      top: 2px;
+      left: 2px;
+    }
+
+    /* Grilles et Lignes */
+    .two-column-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 30px; row-gap: 12px; margin-bottom: 12px; }
+    .full-width-field { margin-bottom: 12px; }
+
+    /* FIX 3 : Hauteur fixe et Flexbox pour aligner le texte sur la ligne grise */
+    .fill-line {
+      border-bottom: 1px solid #94a3b8;
+      height: 26px; /* Hauteur fixe imposée */
+      font-size: 13.5px;
+      display: flex;
+      align-items: flex-end; /* Pousse le texte vers le bas (sur la ligne) */
+      padding-bottom: 2px;
+      position: relative;
+    }
+
+    .form-footer { width: 100%; }
+    .signature-section { display: grid; grid-template-columns: 1fr 1fr; column-gap: 30px; margin-bottom: 20px; }
+    .employer-response-lines { margin-top: 6px; }
+    .blank-line { border-bottom: 1px solid #cbd5e1; height: 24px; margin-bottom: 4px; }
+
+    /* Signature (plus de position absolue) */
+    .signature-font {
+      color: #1d4ed8;
+      font-family: 'Courier New', Courier, monospace;
+      font-weight: bold;
+      font-size: 13px;
+    }
+    .signature-img {
+      position: absolute;
+      bottom: 2px;
+      left: 0;
+      max-height: 55px; /* Plus du double de la taille précédente */
+      max-width: 100%;
+      object-fit: contain;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="form-content">
+   <div class="header-container">
+      <div class="logo-container">
+        {% if logo_base64 %}
+          <img src="{{ logo_base64 }}" alt="Logo SPTSSS" class="logo-image">
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="title-container">
+      <h1>Formule de grief</h1>
+      <div class="grief-number">Grief # {{ no_grief }}</div>
+    </div>
+
+    <div class="grief-types">
+      <span class="field-label">Type de grief :</span>
+      <div class="checkbox-item"><span class="checkbox-box {{ s }}"></span><span>Syndical</span></div>
+      <div class="checkbox-item"><span class="checkbox-box {{ g }}"></span><span>Groupe</span></div>
+      <div class="checkbox-item"><span class="checkbox-box {{ i }}"></span><span>Individuel</span></div>
+    </div>
+
+    <div class="two-column-grid">
+      <div><div class="fill-line text-value">{{ nom_employe }} {{ no_employe }}</div><div class="sub-label">Nom de l'employé - No. Employé</div></div>
+      <div><div class="fill-line text-value">{{ titre_emploi }}</div><div class="sub-label">Titre d'emploi</div></div>
+    </div>
+
+    <div class="two-column-grid">
+      <div><div class="fill-line text-value">{{ service }}</div><div class="sub-label">Service</div></div>
+      <div><div class="fill-line text-value">{{ installation }}</div><div class="sub-label">Lieu de travail</div></div>
+    </div>
+
+    <!-- Établissement (Demi-largeur comme les autres) -->
+    <div class="two-column-grid">
+      <div>
+        <div class="fill-line text-value">{{ etablissement }}</div>
+        <div class="sub-label">Établissement</div>
+      </div>
+      <div>
+        <!-- Colonne vide pour maintenir la grille -->
+      </div>
+    </div>
+
+    <div class="full-width-field" style="margin-top: 15px;">
+      <div class="field-label">Description du grief :</div>
+      <p class="text-value text-block">{{ description_grief | safe }}</p>
+    </div>
+
+    <div class="full-width-field" style="margin-top: 12px;">
+      <div class="field-label">Réclamation :</div>
+      <p class="text-value text-block">{{ reclamation_grief | safe }}</p>
+    </div>
+  </div>
+
+  <div class="form-footer">
+    <div class="signature-section">
+      <div>
+        <div class="fill-line text-value">{{ date_depot }}</div>
+        <div class="sub-label">Date de dépôt de grief</div>
+      </div>
+      <div>
+        <div class="fill-line">
+          <!-- FIX 3 : La signature est alignée naturellement par Flexbox -->
+          {% if signature_img_base64 %}
+            <img src="{{ signature_img_base64 }}" class="signature-img" style="bottom: {{ sig_bottom }}px; left: {{ sig_left }}px; width: {{ sig_width }}px; height: auto; max-width: none !important; max-height: none !important; z-index: 100; mix-blend-mode: multiply;" alt="Signature">
+          {% else %}
+            <span class="signature-font"><i>{{ signature_text }}</i></span>
+          {% endif %}
+        </div>
+        <div class="sub-label">Signature de la personne salariée ou du représentant syndical</div>
+      </div>
+    </div>
+
+    <h1>Réponse de l'employeur</h1>
+    <div class="employer-response-lines">
+      <div class="blank-line"></div>
+      <div class="blank-line"></div>
+      <div class="blank-line"></div>
+    </div>
+
+    <div class="two-column-grid" style="margin-top: 15px;">
+      <div><div class="fill-line"></div><div class="sub-label">Date de réponse de l'employeur</div></div>
+      <div><div class="fill-line"></div><div class="sub-label">Représentant patronal</div></div>
+    </div>
+  </div>
+
+</body>
+</html>
