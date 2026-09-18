@@ -400,12 +400,34 @@ def actualiser_canvas_sig(*args):
 def importer_image_sig():
     filepath = filedialog.askopenfilename(filetypes=[("Images", "*.png *.jpg *.jpeg")])
     if filepath:
-        img_ref["original"] = Image.open(filepath).convert("RGBA")
-        img_ref["filepath"] = filepath
-        img_ref["x"] = 10; img_ref["y"] = 145
-        scale_var_sig.set(0.5)
-        combo_gestion_sig.set("") # C'est une nouvelle image
-        actualiser_canvas_sig()
+        try:
+            img_ouvre = Image.open(filepath).convert("RGBA")
+            
+            # --- SÉCURITÉ : REDIMENSIONNEMENT AUTOMATIQUE SI TROP GROSSE ---
+            max_taille = 800  # pixels max en largeur ou hauteur
+            w, h = img_ouvre.size
+            if max(w, h) > max_taille:
+                if w > h:
+                    new_w = max_taille
+                    new_h = int(h * (max_taille / w))
+                else:
+                    new_h = max_taille
+                    new_w = int(w * (max_taille / h))
+                
+                # Redimensionnement propre avec LANCZOS
+                img_ouvre = img_ouvre.resize((new_w, new_h), Image.Resampling.LANCZOS)
+            # -------------------------------------------------------------
+
+            img_ref["original"] = img_ouvre
+            img_ref["filepath"] = filepath # (Optionnel : si tu veux garder le fichier original ou le copier redimensionné)
+            img_ref["x"] = 10 
+            img_ref["y"] = 145
+            scale_var_sig.set(0.5)
+            combo_gestion_sig.set("") # Nouvelle signature en cours
+            actualiser_canvas_sig()
+            
+        except Exception as e:
+            messagebox.showerror("Erreur", f"Impossible d'importer l'image :\n{e}")
 
 def charger_signature_editeur():
     nom = combo_gestion_sig.get()
