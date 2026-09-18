@@ -25,6 +25,7 @@ DIRS = {
     "images": os.path.join(BASE_DIR, "data", "images"),
     "gabarits": os.path.join(BASE_DIR, "data", "gabarits"),
     "signatures": os.path.join(BASE_DIR, "config", "signatures"),
+    "sauvegardes": os.path.join(BASE_DIR, "config", "sauvegardes"), # NOUVEAU DOSSIER
     "exports_griefs": os.path.join(BASE_DIR, "exports", "griefs"),
     "exports_retraits": os.path.join(BASE_DIR, "exports", "retraits de grief")
 }
@@ -109,9 +110,9 @@ def html_vers_pdf_via_navigateur(chemin_html, chemin_pdf):
         raise Exception(f"Erreur PDF : {e.stderr.decode('utf-8', errors='ignore')}")
 
 # ==========================================
-# SAUVEGARDE / CHARGEMENT DE BROUILLONS
+# GESTION DES BROUILLONS (DÉPÔT ET RETRAIT)
 # ==========================================
-def sauvegarder_brouillon():
+def sauvegarder_brouillon_depot():
     data = {
         "no_grief": ent_nogrief.get(), "nom": ent_nom.get(), "no_employe": ent_no_emp.get(),
         "titre": ent_titre.get(), "installation": ent_inst.get(), "service": ent_serv.get(),
@@ -119,13 +120,13 @@ def sauvegarder_brouillon():
         "signature": combo_sig.get(), "description": txt_desc.get("1.0", "end-1c"),
         "reclamation": txt_recl.get("1.0", "end-1c")
     }
-    filepath = filedialog.asksaveasfilename(defaultextension=".json", filetypes=[("Fichiers JSON brouillon", "*.json")])
+    filepath = filedialog.asksaveasfilename(initialdir=DIRS["sauvegardes"], defaultextension=".json", filetypes=[("Fichiers JSON brouillon", "*.json")])
     if filepath:
         with open(filepath, "w", encoding="utf-8") as f: json.dump(data, f, ensure_ascii=False, indent=4)
-        messagebox.showinfo("Succès", "Le brouillon du grief a été sauvegardé !")
+        messagebox.showinfo("Succès", "Le brouillon du dépôt a été sauvegardé !")
 
-def charger_brouillon():
-    filepath = filedialog.askopenfilename(filetypes=[("Fichiers JSON brouillon", "*.json")])
+def charger_brouillon_depot():
+    filepath = filedialog.askopenfilename(initialdir=DIRS["sauvegardes"], filetypes=[("Fichiers JSON brouillon", "*.json")])
     if filepath:
         try:
             with open(filepath, "r", encoding="utf-8") as f: data = json.load(f)
@@ -143,6 +144,42 @@ def charger_brouillon():
             txt_recl.delete("1.0", tk.END); txt_recl.insert("1.0", data.get("reclamation", ""))
         except Exception as e: messagebox.showerror("Erreur", f"Impossible de charger : {e}")
 
+def sauvegarder_brouillon_retrait():
+    griefs_liste = []
+    for i in range(1, 5):
+        griefs_liste.append({
+            "num": entries_retrait[i]['num'].get(),
+            "nom": entries_retrait[i]['nom'].get(),
+            "mat": entries_retrait[i]['mat'].get()
+        })
+    data = {
+        "griefs": griefs_liste,
+        "motif": var_motif.get(),
+        "signature": combo_sig_retrait.get()
+    }
+    filepath = filedialog.asksaveasfilename(initialdir=DIRS["sauvegardes"], defaultextension=".json", filetypes=[("Fichiers JSON brouillon", "*.json")])
+    if filepath:
+        with open(filepath, "w", encoding="utf-8") as f: json.dump(data, f, ensure_ascii=False, indent=4)
+        messagebox.showinfo("Succès", "Le brouillon du retrait a été sauvegardé !")
+
+def charger_brouillon_retrait():
+    filepath = filedialog.askopenfilename(initialdir=DIRS["sauvegardes"], filetypes=[("Fichiers JSON brouillon", "*.json")])
+    if filepath:
+        try:
+            with open(filepath, "r", encoding="utf-8") as f: data = json.load(f)
+            griefs = data.get("griefs", [])
+            for i in range(1, 5):
+                entries_retrait[i]['num'].delete(0, tk.END)
+                entries_retrait[i]['nom'].delete(0, tk.END)
+                entries_retrait[i]['mat'].delete(0, tk.END)
+                if i - 1 < len(griefs):
+                    entries_retrait[i]['num'].insert(0, griefs[i-1].get("num", ""))
+                    entries_retrait[i]['nom'].insert(0, griefs[i-1].get("nom", ""))
+                    entries_retrait[i]['mat'].insert(0, griefs[i-1].get("mat", ""))
+            var_motif.set(data.get("motif", motifs[0]))
+            combo_sig_retrait.set(data.get("signature", ""))
+        except Exception as e: messagebox.showerror("Erreur", f"Impossible de charger : {e}")
+
 # ==========================================
 # FONCTIONS GLOBALES
 # ==========================================
@@ -152,7 +189,6 @@ def charger_liste_signatures():
         for f in os.listdir(DIRS["signatures"]):
             if f.endswith(".json"): signatures.append(f.replace(".json", ""))
     
-    # Mise à jour des 3 menus déroulants
     combo_sig['values'] = signatures
     combo_sig_retrait['values'] = signatures
     combo_gestion_sig['values'] = signatures
@@ -184,6 +220,20 @@ def generer_depot():
     if not no_grief:
         messagebox.showerror("Erreur", "Le numéro de grief est obligatoire.")
         return
+
+    # --- SAUVEGARDE AUTOMATIQUE HORODATÉE ---
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    auto_brouillon_path = os.path.join(DIRS["sauvegardes"], f"depot_{no_grief.replace('/', '-')}_{timestamp}.json")
+    data_brouillon = {
+        "no_grief": no_grief, "nom": ent_nom.get(), "no_employe": ent_no_emp.get(),
+        "titre": ent_titre.get(), "installation": ent_inst.get(), "service": ent_serv.get(),
+        "etablissement": ent_etab.get(), "date": ent_date.get(), "type": var_type.get(),
+        "signature": combo_sig.get(), "description": txt_desc.get("1.0", "end-1c"),
+        "reclamation": txt_recl.get("1.0", "end-1c")
+    }
+    with open(auto_brouillon_path, "w", encoding="utf-8") as f:
+        json.dump(data_brouillon, f, ensure_ascii=False, indent=4)
+    # ----------------------------------------
 
     sig_data = recuperer_data_signature(combo_sig.get())
     sig_img_base64 = ""; sig_b = 2; sig_l = 0; sig_w = 200
@@ -238,6 +288,18 @@ def generer_retrait():
             griefs_liste.append({"numero": num, "nom": nom, "matricule": entries_retrait[i]['mat'].get().strip()})
             liste_numeros.append(num.replace("/", "-").replace("\\", "-").replace(":", "-"))
 
+    # --- SAUVEGARDE AUTOMATIQUE HORODATÉE ---
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    auto_brouillon_path = os.path.join(DIRS["sauvegardes"], f"retrait_{liste_numeros[0]}_{timestamp}.json")
+    data_brouillon = {
+        "griefs": [{"num": e['num'].get(), "nom": e['nom'].get(), "mat": e['mat'].get()} for e in entries_retrait.values()],
+        "motif": var_motif.get(),
+        "signature": combo_sig_retrait.get()
+    }
+    with open(auto_brouillon_path, "w", encoding="utf-8") as f:
+        json.dump(data_brouillon, f, ensure_ascii=False, indent=4)
+    # ----------------------------------------
+
     sig_data = recuperer_data_signature(combo_sig_retrait.get())
     sig_img_base64 = ""; sig_b = 2; sig_l = 0; sig_w = 200
     if sig_data:
@@ -275,9 +337,6 @@ root.geometry("700x1000")
 
 menu_bar = tk.Menu(root)
 fichier_menu = tk.Menu(menu_bar, tearoff=0)
-fichier_menu.add_command(label="Sauvegarder un brouillon...", command=sauvegarder_brouillon)
-fichier_menu.add_command(label="Charger un brouillon...", command=charger_brouillon)
-fichier_menu.add_separator()
 fichier_menu.add_command(label="Ouvrir dossier des griefs", command=lambda: ouvrir_dossier(DIRS["exports_griefs"]))
 fichier_menu.add_command(label="Ouvrir dossier des retraits", command=lambda: ouvrir_dossier(DIRS["exports_retraits"]))
 fichier_menu.add_separator()
@@ -293,6 +352,12 @@ notebook.pack(expand=True, fill="both", padx=10, pady=10)
 # ==========================================
 tab_depot = ttk.Frame(notebook)
 notebook.add(tab_depot, text="Nouveau Dépôt")
+
+# Barre de raccourcis brouillon pour le dépôt
+f_brouillon_depot = tk.Frame(tab_depot)
+f_brouillon_depot.pack(fill="x", padx=10, pady=5)
+tk.Button(f_brouillon_depot, text="📁 Charger un brouillon", command=charger_brouillon_depot).pack(side="left")
+tk.Button(f_brouillon_depot, text="💾 Sauvegarder le brouillon", command=sauvegarder_brouillon_depot).pack(side="left", padx=5)
 
 f1 = tk.LabelFrame(tab_depot, text="Informations Salarié / Installation", padx=10, pady=6)
 f1.pack(fill="x", padx=10, pady=5)
@@ -328,26 +393,31 @@ tk.Radiobutton(f_type, text="Individuel", variable=var_type, value="Individuel")
 tk.Radiobutton(f_type, text="Groupe", variable=var_type, value="Groupe").pack(side="left")
 tk.Radiobutton(f_type, text="Syndical", variable=var_type, value="Syndical").pack(side="left")
 
-# --- Interface épurée : Juste la sélection ---
-f_sig = tk.LabelFrame(tab_depot, text="Signature de l'agent'", padx=10, pady=5)
+f_sig = tk.LabelFrame(tab_depot, text="Signature de la personne", padx=10, pady=5)
 f_sig.pack(fill="x", padx=10, pady=5)
 combo_sig = ttk.Combobox(f_sig, state="readonly")
 combo_sig.pack(fill="x", expand=True)
 
 tk.Label(tab_depot, text="Description du grief (Détails) :").pack(anchor="w", padx=10, pady=(10, 0))
-txt_desc = tk.Text(tab_depot, height=10, wrap="word")
+txt_desc = tk.Text(tab_depot, height=8, wrap="word")
 txt_desc.pack(fill="x", padx=10, pady=5)
 tk.Label(tab_depot, text="Réclamation (Correctifs) :").pack(anchor="w", padx=10)
-txt_recl = tk.Text(tab_depot, height=8, wrap="word")
+txt_recl = tk.Text(tab_depot, height=6, wrap="word")
 txt_recl.pack(fill="x", padx=10, pady=5)
 
-tk.Button(tab_depot, text="GÉNÉRER LE DÉPÔT (PDF)", command=generer_depot, bg="#27ae60", fg="white", font=("Arial", 12, "bold"), height=2).pack(pady=20, fill="x", padx=10)
+tk.Button(tab_depot, text="GÉNÉRER LE DÉPÔT (PDF)", command=generer_depot, bg="#27ae60", fg="white", font=("Arial", 12, "bold"), height=2).pack(pady=10, fill="x", padx=10)
 
 # ==========================================
 # ONGLET 2: RETRAIT
 # ==========================================
 tab_retrait = ttk.Frame(notebook)
 notebook.add(tab_retrait, text="Retrait de Griefs")
+
+# Barre de raccourcis brouillon pour le retrait
+f_brouillon_retrait = tk.Frame(tab_retrait)
+f_brouillon_retrait.pack(fill="x", padx=10, pady=5)
+tk.Button(f_brouillon_retrait, text="📁 Charger un brouillon", command=charger_brouillon_retrait).pack(side="left")
+tk.Button(f_brouillon_retrait, text="💾 Sauvegarder le brouillon", command=sauvegarder_brouillon_retrait).pack(side="left", padx=5)
 
 entries_retrait = {}
 for i in range(1, 5):
@@ -368,13 +438,12 @@ motifs = ["L’Employeur a fait droit au grief.", "Règlement par entente entre 
 var_motif = tk.StringVar(value=motifs[0])
 ttk.Combobox(motif_frame, textvariable=var_motif, values=motifs, state="readonly").pack(fill="x", pady=5)
 
-# --- Interface épurée : Juste la sélection ---
 f_sig_retrait = tk.LabelFrame(tab_retrait, text="Signature de l'agent", padx=10, pady=5)
 f_sig_retrait.pack(fill="x", padx=10, pady=5)
 combo_sig_retrait = ttk.Combobox(f_sig_retrait, state="readonly")
 combo_sig_retrait.pack(fill="x", expand=True)
 
-tk.Button(tab_retrait, text="GÉNÉRER LE RETRAIT (PDF)", command=generer_retrait, bg="#c0392b", fg="white", font=("Arial", 12, "bold"), height=2).pack(pady=20, fill="x", padx=10)
+tk.Button(tab_retrait, text="GÉNÉRER LE RETRAIT (PDF)", command=generer_retrait, bg="#c0392b", fg="white", font=("Arial", 12, "bold"), height=2).pack(pady=10, fill="x", padx=10)
 
 # ==========================================
 # ONGLET 3: GESTION DES SIGNATURES
@@ -382,7 +451,6 @@ tk.Button(tab_retrait, text="GÉNÉRER LE RETRAIT (PDF)", command=generer_retrai
 tab_sig = ttk.Frame(notebook)
 notebook.add(tab_sig, text="Gestion des Signatures")
 
-# Variables pour l'éditeur intégré
 img_ref = {"original": None, "photo": None, "x": 10, "y": 145, "filepath": None}
 ratio_pdf = 0.84
 
@@ -402,30 +470,21 @@ def importer_image_sig():
     if filepath:
         try:
             img_ouvre = Image.open(filepath).convert("RGBA")
-            
-            # --- SÉCURITÉ : REDIMENSIONNEMENT AUTOMATIQUE SI TROP GROSSE ---
-            max_taille = 800  # pixels max en largeur ou hauteur
+            max_taille = 800
             w, h = img_ouvre.size
             if max(w, h) > max_taille:
                 if w > h:
-                    new_w = max_taille
-                    new_h = int(h * (max_taille / w))
+                    new_w = max_taille; new_h = int(h * (max_taille / w))
                 else:
-                    new_h = max_taille
-                    new_w = int(w * (max_taille / h))
-                
-                # Redimensionnement propre avec LANCZOS
+                    new_h = max_taille; new_w = int(w * (max_taille / h))
                 img_ouvre = img_ouvre.resize((new_w, new_h), Image.Resampling.LANCZOS)
-            # -------------------------------------------------------------
 
             img_ref["original"] = img_ouvre
-            img_ref["filepath"] = filepath # (Optionnel : si tu veux garder le fichier original ou le copier redimensionné)
-            img_ref["x"] = 10 
-            img_ref["y"] = 145
+            img_ref["filepath"] = filepath
+            img_ref["x"] = 10; img_ref["y"] = 145
             scale_var_sig.set(0.5)
-            combo_gestion_sig.set("") # Nouvelle signature en cours
+            combo_gestion_sig.set("")
             actualiser_canvas_sig()
-            
         except Exception as e:
             messagebox.showerror("Erreur", f"Impossible d'importer l'image :\n{e}")
 
@@ -459,8 +518,7 @@ def sauvegarder_signature_tab():
     img_dest = os.path.join(DIRS["signatures"], f"{base_nom}.png")
     json_dest = os.path.join(DIRS["signatures"], f"{base_nom}.json")
 
-    if img_ref.get("filepath") and img_ref["filepath"] != img_dest:
-        shutil.copy(img_ref["filepath"], img_dest)
+    img_ref["original"].save(img_dest, "PNG")
         
     data = {
         "nom": nom_sig, "image": f"{base_nom}.png", "css_left": round(left_px, 2),
@@ -496,10 +554,9 @@ def definir_signature_defaut_tab():
     if not combo_gestion_sig.get(): return
     config_app['signature_defaut'] = combo_gestion_sig.get()
     save_config(config_app)
-    charger_liste_signatures() # Met à jour les sélections par défaut dans les autres onglets
+    charger_liste_signatures()
     messagebox.showinfo("Succès", "Cette signature est maintenant utilisée par défaut.")
 
-# --- Construction visuelle de l'onglet 3 ---
 f_action = tk.LabelFrame(tab_sig, text="Signatures existantes", padx=10, pady=10)
 f_action.pack(fill="x", padx=10, pady=5)
 combo_gestion_sig = ttk.Combobox(f_action, state="readonly")
@@ -515,7 +572,7 @@ tk.Button(f_edit, text="Importer une nouvelle image...", command=importer_image_
 canvas_sig = tk.Canvas(f_edit, width=400, height=200, bg="white", highlightthickness=1, highlightbackground="black")
 canvas_sig.pack(pady=10)
 canvas_sig.create_line(10, 150, 390, 150, fill="#94a3b8", width=2)
-canvas_sig.create_text(10, 155, text="SIGNATURE", anchor="nw", fill="#64748b", font=("Arial", 8))
+canvas_sig.create_text(10, 155, text="Signature de la personne salariée", anchor="nw", fill="#64748b", font=("Arial", 8))
 img_id_sig = canvas_sig.create_image(img_ref["x"], img_ref["y"], anchor="sw")
 
 def on_drag_start(event): img_ref["drag_data"] = {"x": event.x, "y": event.y}
@@ -535,33 +592,29 @@ tk.Scale(f_edit, variable=scale_var_sig, from_=0.1, to=2.0, resolution=0.05, ori
 
 tk.Button(f_edit, text="Sauvegarder", command=sauvegarder_signature_tab, bg="#3498db", fg="white", font=("Arial", 10, "bold"), width=20).pack(pady=15)
 
-# Initialisation
-charger_liste_signatures()
-
 # ==========================================
 # PIED DE PAGE : LOGO REVENDIK
 # ==========================================
-chemin_logo_pied = os.path.join(DIRS["images"], "logo_revendik.jpg") # Modifie l'extension si c'est un .png
+chemin_logo_pied = os.path.join(DIRS["images"], "logo_revendik.jpg")
+if not os.path.exists(chemin_logo_pied):
+    chemin_logo_pied = os.path.join(DIRS["images"], "logo_revendik.png")
 
 if os.path.exists(chemin_logo_pied):
     try:
         img_logo = Image.open(chemin_logo_pied)
-        
-        # Redimensionnement proportionnel pour le pied de page (250 pixels de large)
-        w_base = 500
+        w_base = 220
         w_percent = (w_base / float(img_logo.size[0]))
         h_size = int((float(img_logo.size[1]) * float(w_percent)))
         img_resized = img_logo.resize((w_base, h_size), Image.Resampling.LANCZOS)
-        
         logo_tk = ImageTk.PhotoImage(img_resized)
-        
-        # Affichage du logo au bas de la fenêtre principale
         lbl_logo = tk.Label(root, image=logo_tk)
-        lbl_logo.image = logo_tk # Important : conserver la référence pour éviter que le garbage collector ne l'efface
-        lbl_logo.pack(side="bottom", pady=(0, 10))
+        lbl_logo.image = logo_tk
+        lbl_logo.pack(side="bottom", pady=(0, 5))
     except Exception as e:
-        print(f"Erreur lors du chargement du logo de pied de page : {e}")
+        print(f"Erreur logo pied de page : {e}")
 
+# Initialisation
+charger_liste_signatures()
 
 if __name__ == '__main__':
     root.mainloop()
