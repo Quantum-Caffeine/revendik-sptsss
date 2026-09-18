@@ -572,7 +572,7 @@ tk.Button(f_edit, text="Importer une nouvelle image...", command=importer_image_
 canvas_sig = tk.Canvas(f_edit, width=400, height=200, bg="white", highlightthickness=1, highlightbackground="black")
 canvas_sig.pack(pady=10)
 canvas_sig.create_line(10, 150, 390, 150, fill="#94a3b8", width=2)
-canvas_sig.create_text(10, 155, text="Signature de la personne salariée", anchor="nw", fill="#64748b", font=("Arial", 8))
+canvas_sig.create_text(10, 155, text="SIGNATURE", anchor="nw", fill="#64748b", font=("Arial", 8))
 img_id_sig = canvas_sig.create_image(img_ref["x"], img_ref["y"], anchor="sw")
 
 def on_drag_start(event): img_ref["drag_data"] = {"x": event.x, "y": event.y}
