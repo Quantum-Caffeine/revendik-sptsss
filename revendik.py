@@ -94,12 +94,15 @@ def html_vers_pdf_via_navigateur(chemin_html, chemin_pdf):
 
     navigateur_cmd = None
     for nav in navigateurs_possibles:
-        if os.path.exists(nav) or systeme == "Linux":
+        # Sous Linux, les noms de programmes ne sont pas des chemins : il faut
+        # verifier leur presence dans PATH avant de les choisir.
+        if os.path.exists(nav) or shutil.which(nav):
             navigateur_cmd = nav
             break
 
     if not navigateur_cmd:
-        raise FileNotFoundError("Aucun navigateur compatible (Chrome/Edge/Chromium) n'a été trouvé.")
+        hint_linux = " Installez Chromium ou Google Chrome puis reessayez." if systeme == "Linux" else ""
+        raise FileNotFoundError("Aucun navigateur compatible (Chrome/Edge/Chromium) n'a été trouvé." + hint_linux)
 
     html_uri = f"file:///{os.path.abspath(chemin_html).replace(os.sep, '/')}"
     commande = [navigateur_cmd, "--headless", "--disable-gpu", "--no-pdf-header-footer", f"--print-to-pdf={os.path.abspath(chemin_pdf)}", html_uri]
