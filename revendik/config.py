@@ -22,9 +22,15 @@ class PathManager:
 
     def __init__(self, base_dir: str | None = None) -> None:
         self.base_dir = base_dir or get_app_dir()
+
+        # Check for PyInstaller bundled assets (_MEIPASS)
+        asset_base = getattr(sys, "_MEIPASS", None)
+        if not asset_base or not os.path.exists(os.path.join(asset_base, "data")):
+            asset_base = self.base_dir
+
         self.dirs: Dict[str, str] = {
-            "images": os.path.join(self.base_dir, "data", "images"),
-            "gabarits": os.path.join(self.base_dir, "data", "gabarits"),
+            "images": os.path.join(asset_base, "data", "images"),
+            "gabarits": os.path.join(asset_base, "data", "gabarits"),
             "signatures": os.path.join(self.base_dir, "config", "signatures"),
             "sauvegardes": os.path.join(self.base_dir, "config", "sauvegardes"),
             "exports_griefs": os.path.join(self.base_dir, "exports", "griefs"),

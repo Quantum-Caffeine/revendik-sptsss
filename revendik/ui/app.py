@@ -33,6 +33,15 @@ class RevendikApp:
 
         # Core services
         self.paths = PathManager()
+
+        # Window icon
+        icon_path = os.path.join(self.paths.get_path("images"), "app_icon.ico")
+        if os.path.exists(icon_path):
+            try:
+                self.root.iconbitmap(icon_path)
+            except Exception:
+                pass
+
         self.config = AppConfig.load(self.paths.config_file)
         self.renderer = TemplateRenderer(self.paths)
         self.pdf_gen = PDFGenerator()
