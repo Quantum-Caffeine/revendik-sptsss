@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual Environments
+.env/
+.venv/
+env/
+venv/
+ENV/
+
+# User private data & generated outputs
+config/signatures/*
+!config/signatures/.gitkeep
+config/sauvegardes/*
+!config/sauvegardes/.gitkeep
+exports/
+*.pdf
+
+# IDE & Editor settings
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
