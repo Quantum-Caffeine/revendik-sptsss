@@ -10,7 +10,7 @@ from revendik.drafts import DraftManager
 from revendik.models import MOTIFS_RETRAIT, GrievanceRetrait, GrievanceRetraitItem
 from revendik.pdf import PDFGenerator
 from revendik.renderer import TemplateRenderer
-from revendik.signatures import SignatureManager
+from revendik.signatures import SignatureManager, NO_SIGNATURE, is_no_signature
 from revendik.ui.components.scrollable import ScrollableFrame
 
 
@@ -190,14 +190,22 @@ class RetraitTab(ttk.Frame):
         self.grief_rows.clear()
 
     def update_signatures_list(self) -> None:
-        """Refresh signatures dropdown."""
-        sigs = self.sig_manager.list_signatures()
+        """Refresh signatures dropdown with 'Aucune signature' option."""
+        sigs = [NO_SIGNATURE] + self.sig_manager.list_signatures()
         self.combo_sig["values"] = sigs
         current = self.combo_sig.get()
-        if not current and self.config.signature_defaut in sigs:
-            self.combo_sig.set(self.config.signature_defaut)
-        elif current not in sigs and sigs:
-            self.combo_sig.set(sigs[0] if self.config.signature_defaut not in sigs else self.config.signature_defaut)
+        if not current:
+            if self.config.signature_defaut in sigs and not is_no_signature(self.config.signature_defaut):
+                self.combo_sig.set(self.config.signature_defaut)
+            else:
+                self.combo_sig.set(NO_SIGNATURE)
+        elif current not in sigs:
+            if is_no_signature(current):
+                self.combo_sig.set(NO_SIGNATURE)
+            elif self.config.signature_defaut in sigs:
+                self.combo_sig.set(self.config.signature_defaut)
+            else:
+                self.combo_sig.set(NO_SIGNATURE)
 
     def get_model(self) -> GrievanceRetrait:
         """Construct model from form."""
@@ -208,10 +216,11 @@ class RetraitTab(ttk.Frame):
             mat = row["ent_mat"].get().strip()
             items.append(GrievanceRetraitItem(num=num, nom=nom, mat=mat))
 
+        sig_choice = self.combo_sig.get()
         return GrievanceRetrait(
             griefs=items,
             motif=self.var_motif.get(),
-            signature_nom=self.combo_sig.get(),
+            signature_nom="" if is_no_signature(sig_choice) else sig_choice,
             date_retrait=get_today_date_fr(),
         )
 
@@ -230,8 +239,10 @@ class RetraitTab(ttk.Frame):
             self.combo_motif["values"] = list(MOTIFS_RETRAIT) + [retrait.motif]
             self.var_motif.set(retrait.motif)
 
-        if retrait.signature_nom:
+        if retrait.signature_nom and not is_no_signature(retrait.signature_nom):
             self.combo_sig.set(retrait.signature_nom)
+        else:
+            self.combo_sig.set(NO_SIGNATURE)
 
     def reset_form(self) -> None:
         """Reset form to 1 blank row."""
@@ -285,8 +296,12 @@ class RetraitTab(ttk.Frame):
     def _render_current_html(self) -> str:
         retrait = self.get_model()
         sig_name = self.combo_sig.get()
-        sig_config = self.sig_manager.get_signature(sig_name) if sig_name else None
-        sig_img_path = self.sig_manager.get_image_path(sig_config) if sig_config else None
+        if is_no_signature(sig_name):
+            sig_config = None
+            sig_img_path = None
+        else:
+            sig_config = self.sig_manager.get_signature(sig_name)
+            sig_img_path = self.sig_manager.get_image_path(sig_config) if sig_config else None
         return self.renderer.render_retrait(retrait, sig_config, sig_img_path)
 
     def preview_retrait(self) -> None:

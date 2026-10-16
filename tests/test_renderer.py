@@ -51,5 +51,28 @@ class TestRenderer(unittest.TestCase):
         self.assertIn("L’Employeur a fait droit au grief.", html)
 
 
+    def test_render_depot_no_signature_leaves_space_empty(self) -> None:
+        depot = GrievanceDepot(
+            no_grief="G-2026-EMPTY",
+            nom="Julie Lemieux",
+            signature_nom="Aucune signature",
+        )
+        html = self.renderer.render_depot(depot, signature=None, signature_image_path=None)
+        # Verify that no signature image and no font span are rendered
+        self.assertNotIn("class=\"signature-img\"", html)
+        self.assertNotIn("class=\"signature-font\"", html)
+        self.assertNotIn("Julie Lemieux</i>", html)
+        self.assertIn("G-2026-EMPTY", html)
+
+    def test_render_retrait_no_signature_leaves_space_empty(self) -> None:
+        retrait = GrievanceRetrait(
+            griefs=[GrievanceRetraitItem(num="2026-R-EMPTY", nom="Sophie", mat="123")],
+            signature_nom="Aucune signature",
+        )
+        html = self.renderer.render_retrait(retrait, signature=None, signature_image_path=None)
+        self.assertNotIn("class=\"signature-img\"", html)
+        self.assertIn("2026-R-EMPTY", html)
+
+
 if __name__ == "__main__":
     unittest.main()

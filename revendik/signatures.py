@@ -12,6 +12,15 @@ from revendik.models import SignatureConfig
 RATIO_PDF = 0.84
 CANVAS_BASELINE_Y = 150
 CANVAS_OFFSET_X = 10
+NO_SIGNATURE = "Aucune signature"
+
+
+def is_no_signature(name: Optional[str]) -> bool:
+    """Check if the signature name represents 'no signature'."""
+    if not name:
+        return True
+    cleaned = name.strip().lower()
+    return cleaned in ("", "aucune signature", "(aucune signature)", "aucune")
 
 
 def sanitize_sig_filename(name: str) -> str:
@@ -63,7 +72,7 @@ class SignatureManager:
 
     def find_file_by_name(self, name: str) -> Optional[str]:
         """Find the JSON file path matching a signature name."""
-        if not name or not os.path.exists(self.sig_dir):
+        if not name or is_no_signature(name) or not os.path.exists(self.sig_dir):
             return None
         # Check direct filename
         clean = sanitize_sig_filename(name)

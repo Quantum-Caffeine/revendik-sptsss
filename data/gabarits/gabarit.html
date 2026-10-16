@@ -172,7 +172,7 @@
           <!-- FIX 3 : La signature est alignée naturellement par Flexbox -->
           {% if signature_img_base64 %}
             <img src="{{ signature_img_base64 }}" class="signature-img" style="bottom: {{ sig_bottom }}px; left: {{ sig_left }}px; width: {{ sig_width }}px; height: auto; max-width: none !important; max-height: none !important; z-index: 100; mix-blend-mode: multiply;" alt="Signature">
-          {% else %}
+          {% elif signature_text %}
             <span class="signature-font"><i>{{ signature_text }}</i></span>
           {% endif %}
         </div>

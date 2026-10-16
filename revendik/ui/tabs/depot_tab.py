@@ -10,7 +10,7 @@ from revendik.drafts import DraftManager
 from revendik.models import GrievanceDepot
 from revendik.pdf import PDFGenerator
 from revendik.renderer import TemplateRenderer
-from revendik.signatures import SignatureManager
+from revendik.signatures import SignatureManager, NO_SIGNATURE, is_no_signature
 from revendik.ui.components.scrollable import ScrollableFrame
 from revendik.ui.theme import Theme
 
@@ -153,17 +153,26 @@ class DepotTab(ttk.Frame):
         self.scroll_frame.bind_child_mousewheel(content)
 
     def update_signatures_list(self) -> None:
-        """Refresh signatures dropdown."""
-        sigs = self.sig_manager.list_signatures()
+        """Refresh signatures dropdown with 'Aucune signature' option."""
+        sigs = [NO_SIGNATURE] + self.sig_manager.list_signatures()
         self.combo_sig["values"] = sigs
         current = self.combo_sig.get()
-        if not current and self.config.signature_defaut in sigs:
-            self.combo_sig.set(self.config.signature_defaut)
-        elif current not in sigs and sigs:
-            self.combo_sig.set(sigs[0] if self.config.signature_defaut not in sigs else self.config.signature_defaut)
+        if not current:
+            if self.config.signature_defaut in sigs and not is_no_signature(self.config.signature_defaut):
+                self.combo_sig.set(self.config.signature_defaut)
+            else:
+                self.combo_sig.set(NO_SIGNATURE)
+        elif current not in sigs:
+            if is_no_signature(current):
+                self.combo_sig.set(NO_SIGNATURE)
+            elif self.config.signature_defaut in sigs:
+                self.combo_sig.set(self.config.signature_defaut)
+            else:
+                self.combo_sig.set(NO_SIGNATURE)
 
     def get_model(self) -> GrievanceDepot:
         """Construct model from current form fields."""
+        sig_choice = self.combo_sig.get()
         return GrievanceDepot(
             no_grief=self.ent_nogrief.get().strip(),
             nom=self.ent_nom.get().strip(),
@@ -174,7 +183,7 @@ class DepotTab(ttk.Frame):
             etablissement=self.ent_etab.get().strip(),
             date=self.ent_date.get().strip(),
             type_grief=self.var_type.get(),
-            signature_nom=self.combo_sig.get(),
+            signature_nom="" if is_no_signature(sig_choice) else sig_choice,
             description=self.txt_desc.get("1.0", "end-1c").strip(),
             reclamation=self.txt_recl.get("1.0", "end-1c").strip(),
         )
@@ -190,8 +199,10 @@ class DepotTab(ttk.Frame):
         self._set_entry(self.ent_etab, depot.etablissement or self.config.etablissement_defaut)
         self._set_entry(self.ent_date, depot.date or get_today_date_fr())
         self.var_type.set(depot.type_grief or "Individuel")
-        if depot.signature_nom:
+        if depot.signature_nom and not is_no_signature(depot.signature_nom):
             self.combo_sig.set(depot.signature_nom)
+        else:
+            self.combo_sig.set(NO_SIGNATURE)
         self.txt_desc.delete("1.0", tk.END)
         self.txt_desc.insert("1.0", depot.description)
         self.txt_recl.delete("1.0", tk.END)
@@ -204,10 +215,15 @@ class DepotTab(ttk.Frame):
 
     def reset_form(self) -> None:
         """Reset form fields to blank / defaults."""
+        default_sig = (
+            self.config.signature_defaut
+            if self.config.signature_defaut and not is_no_signature(self.config.signature_defaut)
+            else NO_SIGNATURE
+        )
         depot = GrievanceDepot(
             etablissement=self.config.etablissement_defaut,
             date=get_today_date_fr(),
-            signature_nom=self.config.signature_defaut,
+            signature_nom=default_sig,
         )
         self.populate_form(depot)
         self.update_signatures_list()
@@ -255,8 +271,12 @@ class DepotTab(ttk.Frame):
         """Render the current model to HTML string."""
         depot = self.get_model()
         sig_name = self.combo_sig.get()
-        sig_config = self.sig_manager.get_signature(sig_name) if sig_name else None
-        sig_img_path = self.sig_manager.get_image_path(sig_config) if sig_config else None
+        if is_no_signature(sig_name):
+            sig_config = None
+            sig_img_path = None
+        else:
+            sig_config = self.sig_manager.get_signature(sig_name)
+            sig_img_path = self.sig_manager.get_image_path(sig_config) if sig_config else None
         return self.renderer.render_depot(depot, sig_config, sig_img_path)
 
     def preview_depot(self) -> None:

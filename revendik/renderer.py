@@ -7,6 +7,7 @@ from jinja2 import Environment, FileSystemLoader
 
 from revendik.config import PathManager, get_today_date_fr
 from revendik.models import GrievanceDepot, GrievanceRetrait, SignatureConfig
+from revendik.signatures import is_no_signature
 
 
 def encode_image_base64(image_path: Optional[str]) -> Optional[str]:
@@ -51,6 +52,11 @@ class TemplateRenderer:
         sig_left = signature.css_left if signature else 0.0
         sig_width = signature.css_width if signature else 200.0
 
+        # If no graphic signature is present, only show text if signature is not disabled
+        sig_text = ""
+        if not sig_b64 and depot.signature_nom and not is_no_signature(depot.signature_nom):
+            sig_text = depot.nom
+
         data: Dict[str, Any] = {
             "no_grief": depot.no_grief,
             "nom_employe": depot.nom,
@@ -64,7 +70,7 @@ class TemplateRenderer:
             "reclamation_grief": depot.reclamation.replace("\n", "<br>"),
             "logo_base64": self.get_logo_base64(),
             "signature_img_base64": sig_b64 or "",
-            "signature_text": depot.nom,
+            "signature_text": sig_text,
             "sig_bottom": sig_bottom,
             "sig_left": sig_left,
             "sig_width": sig_width,

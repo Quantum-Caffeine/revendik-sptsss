@@ -7,7 +7,7 @@ from typing import Callable, Optional
 
 from revendik.config import AppConfig, PathManager, open_folder
 from revendik.pdf import detect_browser_info
-from revendik.signatures import SignatureManager
+from revendik.signatures import SignatureManager, NO_SIGNATURE, is_no_signature
 
 
 class SettingsDialog(tk.Toplevel):
@@ -50,9 +50,13 @@ class SettingsDialog(tk.Toplevel):
         ttk.Label(f_general, text="Signature par défaut :").grid(row=1, column=0, sticky="w", pady=4)
         self.combo_sig = ttk.Combobox(f_general, state="readonly", width=36)
         self.combo_sig.grid(row=1, column=1, sticky="ew", pady=4, padx=(8, 0))
-        sigs = [""] + self.sig_manager.list_signatures()
+        sigs = [NO_SIGNATURE] + self.sig_manager.list_signatures()
         self.combo_sig["values"] = sigs
-        self.combo_sig.set(self.config.signature_defaut if self.config.signature_defaut in sigs else "")
+        current = self.config.signature_defaut
+        if current and current in sigs and not is_no_signature(current):
+            self.combo_sig.set(current)
+        else:
+            self.combo_sig.set(NO_SIGNATURE)
 
         f_general.columnconfigure(1, weight=1)
 
@@ -123,7 +127,8 @@ class SettingsDialog(tk.Toplevel):
     def save_settings(self) -> None:
         """Persist settings to disk and invoke callback."""
         self.config.etablissement_defaut = self.ent_etab.get().strip()
-        self.config.signature_defaut = self.combo_sig.get().strip()
+        sig_choice = self.combo_sig.get().strip()
+        self.config.signature_defaut = "" if is_no_signature(sig_choice) else sig_choice
         try:
             self.config.save(self.paths.config_file)
             self.on_save_callback()
